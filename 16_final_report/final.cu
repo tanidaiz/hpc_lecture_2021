@@ -11,8 +11,9 @@ __global__ void kernel(float *A, float *B, float *C, int N, int offset, int widt
   //printf("block:%d/%d thread:%d/%d\n", blockIdx.x, gridDim.x, threadIdx.x, blockDim.x);
   //int i = blockIdx.y;
   //int j = threadIdx.x + blockDim.x * blockIdx.x;
-  int i = blockIdx.x*blockDim.x + threadIdx.x;
-  int j = blockIdx.y*blockDim.y + threadIdx.y;
+  //int i = blockIdx.x*blockDim.x + threadIdx.x;
+  int i = 0;
+  int j = blockIdx.x*blockDim.x + threadIdx.x;
   //printf("%d:%d\n", i, j);
   float sum = 0.0f;
   /*extern __shared__ float A_s[];
@@ -25,17 +26,32 @@ __global__ void kernel(float *A, float *B, float *C, int N, int offset, int widt
     }
   }
   C[N*i+j+offset] = sum;*/
-  /*extern __shared__ float A_s[];
+  
+  extern __shared__ float A_s[];
   for(int row=0;row<width;row++){
       __syncthreads();
-      A_s[threadIdx.x] = A[a]
-  }*/
+      /*A_s[threadIdx.x] = A[row*N+threadIdx.x];
+      A_s[threadIdx.x+width] = A[row*N+threadIdx.x+width];
+      A_s[threadIdx.x+width*2] = A[row*N+threadIdx.x+width*2];
+      A_s[threadIdx.x+width*3] = A[row*N+threadIdx.x+width*3];*/
+      A_s[threadIdx.x*4] = A[row*N+threadIdx.x*4];
+      A_s[threadIdx.x*4+1] = A[row*N+threadIdx.x*4+1];
+      A_s[threadIdx.x*4+2] = A[row*N+threadIdx.x*4+2];
+      A_s[threadIdx.x*4+3] = A[row*N+threadIdx.x*4+3];
+      __syncthreads();
+      
+      float sum = 0.0;
+      for(int k=0;k<N;k++){
+          sum += A_s[k] * B[width*k+threadIdx.x];
+      }
+      C[row*N+threadIdx.x+offset] = sum;
+  }
   
-  for(int k=0;k<N;k++){
+  /*for(int k=0;k<N;k++){
     sum += A[N*i+k]*B[width*k+j];
   }
   C[N*i+j+offset] = sum;// 65.6GFlops
-  
+  */
 }
 
 int main(int argc, char** argv) {
@@ -94,7 +110,7 @@ int main(int argc, char** argv) {
           subC[N*i+j+offset] += subA[N*i+k] * subB[buffering_offset*(irank%2)+N/size*k+j];*/
       
     cudaMemcpy(subB, subB_cpu+buffering_offset*(irank%2), N*N/size*sizeof(float), cudaMemcpyHostToDevice);
-    kernel<<<dim3(N/size/32, N/size/32),dim3(32,32)>>>(subA, subB, subC, N, offset, N/size);
+    kernel<<<N/size,N/size, N*sizeof(float)>>>(subA, subB, subC, N, offset, N/size);
     cudaDeviceSynchronize();
     
     
