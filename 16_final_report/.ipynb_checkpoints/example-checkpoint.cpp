@@ -40,11 +40,9 @@ int main(int argc, char** argv) {
     int buffering_offset = N*N/size;
     auto tic = chrono::steady_clock::now();
     offset = N/size*((rank+irank) % size);
-    //printf("%d/%d\n", offset, N*N/size);
     for (int i=0; i<N/size; i++)
       for (int j=0; j<N/size; j++)
         for (int k=0; k<N; k++){
-            //printf("%d\n", N*i+j+offset);
           subC[N*i+j+offset] += subA[N*i+k] * subB[buffering_offset*(irank%2)+N/size*k+j];
         }
           
