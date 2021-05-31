@@ -116,10 +116,10 @@ int main(int argc, char** argv) {
   MPI_Allgather(&subC[0], N*N/size, MPI_FLOAT, &C[0], N*N/size, MPI_FLOAT, MPI_COMM_WORLD);
 
   
-  // faster verification using OpenMP
-  double err = err_calc(A,B,C,N);
     
   if(rank==0) {
+    // faster verification using OpenMP
+    double err = err_calc(A,B,C,N);
     double time = comp_time+comm_time;
     printf("N    : %d\n",N);
     printf("comp : %lf s\n", comp_time);
